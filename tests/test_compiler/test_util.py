@@ -129,11 +129,36 @@ def test_pascal_case() -> None:
 
 
 def test_snake_case() -> None:
+    assert snake_case("") == ""
+    assert snake_case("123") == "123"
+    assert snake_case("A") == "a"
     assert snake_case("snake_case") == "snake_case"
     assert snake_case("SnakeCase") == "snake_case"
     assert snake_case("snakeCase") == "snake_case"
     assert snake_case("SNAKE_CASE") == "snake_case"
     assert snake_case("SNAKE_42_CASE") == "snake_42_case"
+    assert snake_case("HTTPServer") == "http_server"
+    assert snake_case("getHTTPResponseCode") == "get_http_response_code"
+    assert snake_case("Mixed_SnakeCase") == "mixed_snake_case"
+    assert snake_case("Snake42Case") == "snake_42_case"
+    assert snake_case("xY") == "x_y"
+    assert snake_case("Xy") == "xy"
+    assert snake_case("Id") == "id"
+    assert snake_case("__Init__") == "__init__"
+    assert snake_case("__") == "__"
+    assert snake_case("foo__bar") == "foo_bar"
+    assert snake_case("already_snake_case") == "already_snake_case"
+    assert snake_case("kebab-case-here") == "kebab_case_here"
+    assert snake_case("Ipv6Address") == "ipv_6_address"
+    assert snake_case("Ipv6_Address") == "ipv6_address"
+    assert snake_case("MyMessage_v1") == "my_message_v1"
+    assert snake_case("camelCase123") == "camel_case_123"
+    assert snake_case("_privateVariable") == "_private_variable"
+    assert snake_case("GPU3DModel") == "gpu_3_d_model"
+    assert snake_case("TI82") == "ti82"
+    assert snake_case("TI82_PLUS") == "ti82_plus"
+    assert snake_case("MyMessage_mk2") == "my_message_mk2"
+    assert snake_case("MY_VALUE1") == "my_value1"
 
 
 def test_cast_or_raise() -> None:

@@ -361,22 +361,56 @@ def pascal_case(word: str) -> str:
     return "".join(items)
 
 
-# Uppercase preceded by a lowercase marks the start of a new camelCase word
-_snake_case_regex_camel_match = re.compile(r"(?<=[a-z])([A-Z]+[a-z0-9]*)")
+_snakecase_re_camel_b1 = re.compile(r"(.)([A-Z][a-z]+)")  # Xy boundary
+_snakecase_re_camel_b2 = re.compile(r"([a-z0-9])([A-Z])")  # aA/0A boundary
+_snakecase_re_alpha_to_digit = re.compile(r"([A-Za-z])([0-9])")
+_snakecase_re_digit_to_alpha = re.compile(r"([0-9])([A-Za-z])")
+
+_snakecase_re_multi_us = re.compile(r"__+")
+_snakecase_re_upper_or_digits = re.compile(r"^[A-Z0-9]+$")
+_snakecase_re_mixed_case = re.compile(r"[A-Z].*[a-z]|[a-z].*[A-Z]")
+_snakecase_re_leading_us = re.compile(r"^_+")
+_snakecase_re_trailing_us = re.compile(r"_+$")
 
 
 def snake_case(word: str) -> str:
-    """Converts given word to snake case.
-
-    >>> snake_case("someWord")
-    "some_word"
     """
-    snake_case_split: List[str] = word.split("_")
+    Convert identifier to snake_case with common-sense rules:
+    - Preserve leading/trailing underscores exactly.
+    - Normalize interior underscores.
+    - Default: split at camel boundaries and letter<->digit boundaries.
+    - If original has both '_' and mixed case, do NOT split letter<->digit.
+    - Do NOT split letter<->digit inside ALL-UPPER tokens.
+    """
+    if not word:
+        return ""
 
-    camel_case_split: List[str] = list(
-        itertools.chain.from_iterable(
-            filter(None, _snake_case_regex_camel_match.split(w))
-            for w in snake_case_split
-        )
+    # Preserve edge underscores (e.g., '__init__')
+    s = word.replace("-", "_")
+    pre_m = _snakecase_re_leading_us.match(s)
+    pre = pre_m.group(0) if pre_m else ""
+    rest = s[len(pre) :]  # use the remainder to find suffix
+    suf_m = _snakecase_re_trailing_us.search(rest)
+    suf = suf_m.group(0) if suf_m else ""
+    core = rest[: len(rest) - len(suf)]  # core = s - pre - suf
+
+    respect_author_digits = ("_" in word) and bool(
+        _snakecase_re_mixed_case.search(word)
     )
-    return "_".join(camel_case_split).lower()
+
+    parts: List[str] = []
+    for t in core.split("_"):
+        if not t:
+            continue
+        # camel splits (two-pass)
+        t = _snakecase_re_camel_b1.sub(r"\1_\2", t)
+        t = _snakecase_re_camel_b2.sub(r"\1_\2", t)
+        # letter<->digit split when allowed
+        if not respect_author_digits and not _snakecase_re_upper_or_digits.fullmatch(t):
+            t = _snakecase_re_alpha_to_digit.sub(r"\1_\2", t)
+            t = _snakecase_re_digit_to_alpha.sub(r"\1_\2", t)
+        parts.append(t)
+
+    core_snake = "_".join(parts)
+    core_snake = _snakecase_re_multi_us.sub("_", core_snake).strip("_").lower()
+    return f"{pre}{core_snake}{suf}"
