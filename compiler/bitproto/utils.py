@@ -360,39 +360,56 @@ def pascal_case(word: str) -> str:
     return "".join(items)
 
 
-_snake_case_regex_head = r"[A-Z0-9]"
-_snake_case_regex_tail = r"[^A-Z0-9]"
-_snake_case_regex_capital_match = re.compile(
-    rf"({_snake_case_regex_head}+{_snake_case_regex_tail}*)"
-)
-_snake_case_regex_m_capital_match = re.compile(
-    rf"^({_snake_case_regex_head}{{1,}})({_snake_case_regex_head}+{_snake_case_regex_tail}+)$"
-)
+_snakecase_re_camel_b1 = re.compile(r"(.)([A-Z][a-z]+)")  # Xy boundary
+_snakecase_re_camel_b2 = re.compile(r"([a-z0-9])([A-Z])")  # aA/0A boundary
+_snakecase_re_alpha_to_digit = re.compile(r"([A-Za-z])([0-9])")
+_snakecase_re_digit_to_alpha = re.compile(r"([0-9])([A-Za-z])")
+
+_snakecase_re_multi_us = re.compile(r"__+")
+_snakecase_re_upper_or_digits = re.compile(r"^[A-Z0-9]+$")
+_snakecase_re_mixed_case = re.compile(r"[A-Z].*[a-z]|[a-z].*[A-Z]")
+_snakecase_re_leading_us = re.compile(r"^_+")
+_snakecase_re_trailing_us = re.compile(r"_+$")
 
 
 def snake_case(word: str) -> str:
-    """Converts given word to snake case.
-
-    >>> snake_case("someWord")
-    "some_word"
     """
-    underscore = "_"
-    no_underscore_words = word.split(underscore)
-    no_underscore_cases: List[str] = []
+    Convert identifier to snake_case with common-sense rules:
+    - Preserve leading/trailing underscores exactly.
+    - Normalize interior underscores.
+    - Default: split at camel boundaries and letter<->digit boundaries.
+    - If original has both '_' and mixed case, do NOT split letter<->digit.
+    - Do NOT split letter<->digit inside ALL-UPPER tokens.
+    """
+    if not word:
+        return ""
 
-    for w in no_underscore_words:
-        cases = filter(None, _snake_case_regex_capital_match.split(w))
-        for case in cases:
-            subcases = filter(None, _snake_case_regex_m_capital_match.split(case))
-            if subcases:
-                for subcase in subcases:
-                    no_underscore_cases.append(subcase)
-            else:
-                no_underscore_cases.append(case)
+    # Preserve edge underscores (e.g., '__init__')
+    s = word.replace("-", "_")
+    pre_m = _snakecase_re_leading_us.match(s)
+    pre = pre_m.group(0) if pre_m else ""
+    rest = s[len(pre) :]  # use the remainder to find suffix
+    suf_m = _snakecase_re_trailing_us.search(rest)
+    suf = suf_m.group(0) if suf_m else ""
+    core = rest[: len(rest) - len(suf)]  # core = s - pre - suf
 
-    snake_word = ""
-    for case in no_underscore_cases:
-        if not case.isdigit():
-            snake_word += underscore
-        snake_word += case
-    return snake_word.strip(underscore).lower()
+    respect_author_digits = ("_" in word) and bool(
+        _snakecase_re_mixed_case.search(word)
+    )
+
+    parts: List[str] = []
+    for t in core.split("_"):
+        if not t:
+            continue
+        # camel splits (two-pass)
+        t = _snakecase_re_camel_b1.sub(r"\1_\2", t)
+        t = _snakecase_re_camel_b2.sub(r"\1_\2", t)
+        # letter<->digit split when allowed
+        if not respect_author_digits and not _snakecase_re_upper_or_digits.fullmatch(t):
+            t = _snakecase_re_alpha_to_digit.sub(r"\1_\2", t)
+            t = _snakecase_re_digit_to_alpha.sub(r"\1_\2", t)
+        parts.append(t)
+
+    core_snake = "_".join(parts)
+    core_snake = _snakecase_re_multi_us.sub("_", core_snake).strip("_").lower()
+    return f"{pre}{core_snake}{suf}"

@@ -1,5 +1,14 @@
 .. currentmodule:: bitproto
 
+Version 1.2.2
+-------------
+
+.. _version-1.2.2:
+
+Warning: May break some existing projects's generated names:
+
+- Improve `snake_case` function. #74, #75
+
 Version 1.2.1
 -------------
 
