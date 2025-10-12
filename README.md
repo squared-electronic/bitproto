@@ -254,7 +254,7 @@ Faq:
 
 Blog posts:
 
-- Dev notes in Chinese: [https://writings.sh/post/bitproto-notes](https://writings.sh/post/bitproto-notes)
+- Dev notes in Chinese: [https://hit9.dev/post/bitproto-notes](https://hit9.dev/post/bitproto-notes)
 
 License
 -------
