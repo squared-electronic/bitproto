@@ -407,6 +407,7 @@ class BlockIncludeOpMode(Block[F]):
     def render(self) -> None:
         header_filename = self.formatter.format_out_filename(self.bound, extension=".h")
         self.push(f'#include "{header_filename}"')
+        self.push("#include <string.h>")  # for memcpy
 
 
 class BlockMessageEncoderOpMode(BlockMessageEncoderBase):

@@ -10,11 +10,13 @@ from typing import (
     List,
     NoReturn,
     Optional,
-    Type as T,
     TypeVar,
     Union,
     cast,
     overload,
+)
+from typing import (
+    Type as T,
 )
 
 Function = Callable[..., Any]

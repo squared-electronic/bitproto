@@ -7,7 +7,8 @@ Formatter class base.
 
 import os
 from abc import abstractmethod
-from enum import Enum as Enum_, unique
+from enum import Enum as Enum_
+from enum import unique
 from typing import (
     Callable,
     Dict,
@@ -16,10 +17,12 @@ from typing import (
     Mapping,
     Optional,
     Tuple,
-    Type as T,
     TypeVar,
     Union,
     cast,
+)
+from typing import (
+    Type as T,
 )
 
 from bitproto._ast import (
@@ -711,6 +714,22 @@ class Formatter:
             return self.format_op_mode_endecode_alias(t, chain, is_encode, i)
         raise InternalError("format_endecode_message_field got unknown type")
 
+    def format_op_mode_endecode_array_at_once(
+        self, t: Type, chain: str, is_encode: bool, i: List[int]
+    ) -> List[str]:
+        if not isinstance(t, Array):
+            raise InternalError(
+                "format_op_mode_endecode_array_at_once tried to format non-array"
+            )
+        l: List[str] = []
+        s_string = f"&s[{int(i[0] / 8)}]"
+        if is_encode:
+            l.append(f"memcpy({s_string}, {chain}, {t.cap});")
+        else:
+            l.append(f"memcpy({chain}, {s_string}, {t.cap});")
+        i[0] += t.cap * 8
+        return l
+
     @final
     def format_op_mode_endecode_array(
         self, t: Array, chain: str, is_encode: bool, i: List[int]
@@ -721,18 +740,19 @@ class Formatter:
         """
         t_ = t.element_type
         l: List[str] = []
-        for index in range(t.cap):
-            l_: List[str]
-            chain_ = self.format_op_mode_field_name_chain_array(chain, index)
-            if isinstance(t_, SingleType):
-                l_ = self.format_op_mode_endecode_single_type(t_, chain_, is_encode, i)
-            elif isinstance(t_, Message):
-                l_ = self.format_op_mode_endecode_message(t_, chain_, is_encode, i)
-            elif isinstance(t_, Alias):
-                l_ = self.format_op_mode_endecode_alias(t_, chain_, is_encode, i)
-            else:
-                raise InternalError("format_endecode_array got unknown element_type")
-            l.extend(l_)
+        l.extend(self.format_op_mode_endecode_array_at_once(t, chain, is_encode, i))
+        # for index in range(t.cap):
+        #     l_: List[str]
+        #     chain_ = self.format_op_mode_field_name_chain_array(chain, index)
+        #     if isinstance(t_, SingleType):
+        #         l_ = self.format_op_mode_endecode_single_type(t_, chain_, is_encode, i)
+        #     elif isinstance(t_, Message):
+        #         l_ = self.format_op_mode_endecode_message(t_, chain_, is_encode, i)
+        #     elif isinstance(t_, Alias):
+        #         l_ = self.format_op_mode_endecode_alias(t_, chain_, is_encode, i)
+        #     else:
+        #         raise InternalError("format_endecode_array got unknown element_type")
+        #     l.extend(l_)
         return l
 
     @final
